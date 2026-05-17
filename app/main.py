@@ -7,7 +7,9 @@ from pathlib import Path
 from typing import Any, Dict, Tuple
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, render_template, request
+import os
+
+from flask import Flask, jsonify, request, send_from_directory
 from loguru import logger
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -154,18 +156,18 @@ def create_app() -> Flask:
             logger.exception("Prediction failed: {}", exc)
             return jsonify({"error": "Prediction failed"}), 500
 
-    @app.get("/")
-    def index() -> Any:
-        """Serve the main UI."""
-        cfg = app.config["AGRO_CONFIG"]
-        countries = sorted(app.config.get("COUNTRY_DEFAULTS", {}).keys())
-        soils = ["clay", "sandy", "loamy", "silt", "peaty", "saline", "loam"]
-        return render_template(
-            "index.html",
-            country_options=countries,
-            soil_options=soils,
-            classes=cfg["models"]["crop"].get("classes", []),
-        )
+    react_dir = os.path.join(app.static_folder, "react")
+
+    @app.route("/", defaults={"path": ""})
+    @app.route("/<path:path>")
+    def serve_react(path: str) -> Any:
+        """Serve the React SPA; API routes registered above take precedence."""
+        if path and os.path.exists(os.path.join(react_dir, path)):
+            return send_from_directory(react_dir, path)
+        index_path = os.path.join(react_dir, "index.html")
+        if os.path.exists(index_path):
+            return send_from_directory(react_dir, "index.html")
+        return jsonify({"error": "Frontend not built. Run: cd frontend && npm run build"}), 503
 
     return app
 

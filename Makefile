@@ -20,3 +20,12 @@ streamlit:
 
 lint:
 	$(PYTHON) -m ruff check src app tests 2>nul || echo "Install ruff for linting"
+
+frontend-install:
+	cd frontend && npm install
+
+frontend-dev:
+	cd frontend && npm run dev
+
+frontend-build:
+	cd frontend && npm run build
